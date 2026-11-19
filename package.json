@@ -1,0 +1,24 @@
+{
+  "name": "cabcompare",
+  "version": "1.0.0",
+  "description": "Corporate-Ready Multi-Provider Rideshare Price Aggregation Web App (US & India)",
+  "main": "app.js",
+  "scripts": {
+    "test": "node test-suite.js",
+    "verify": "node verify-calibration.js"
+  },
+  "keywords": [
+    "rideshare",
+    "price-aggregator",
+    "uber",
+    "lyft",
+    "ola",
+    "rapido",
+    "blusmart",
+    "leaflet",
+    "osrm",
+    "corporate"
+  ],
+  "author": "CabCompare Engineering Team",
+  "license": "MIT"
+}

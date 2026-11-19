@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>CabCompare — Corporate Multi-Provider Rideshare Aggregator</title>
+  
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- Tailwind CSS CDN with Corporate Slate/Indigo Configuration -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            corporate: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              400: '#94a3b8',
+              500: '#64748b',
+              600: '#475569',
+              700: '#334155',
+              800: '#1e293b',
+              900: '#0f172a',
+              950: '#020617',
+            },
+            brand: {
+              blue: '#1d4ed8',
+              indigo: '#4338ca',
+              emerald: '#059669',
+              amber: '#d97706',
+              rose: '#e11d48',
+            }
+          },
+          boxShadow: {
+            'card': '0 4px 20px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04)',
+            'float': '0 20px 35px -5px rgba(15, 23, 42, 0.15), 0 10px 15px -5px rgba(15, 23, 42, 0.06)',
+            'sheet': '0 -10px 30px -5px rgba(15, 23, 42, 0.15)',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased overflow-hidden select-none">
+
+  <!-- Top App Navigation Bar -->
+  <header class="fixed top-0 left-0 right-0 h-14 bg-white/95 backdrop-blur-md border-b border-slate-200 z-[1100] px-3 sm:px-6 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+      <!-- Desktop Sidebar Toggle Button -->
+      <button id="sidebarToggleBtn" class="hidden md:flex items-center justify-center w-9 h-9 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors" title="Toggle Search Sidebar" aria-label="Toggle Navigation Panel">
+        <svg id="sidebarToggleIcon" class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <!-- App Logo & Branding -->
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 via-indigo-600 to-sky-500 flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-bold text-base tracking-tighter">
+          CC
+        </div>
+        <div>
+          <span class="text-base sm:text-lg font-bold tracking-tight text-slate-900">Cab<span class="text-blue-600">Compare</span></span>
+          <span class="hidden sm:inline-block ml-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-600 rounded border border-slate-200">Corporate Enterprise</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center / Right Controls: Quick Preset, Surge, and Region Switcher -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Quick Demo Presets Dropdown -->
+      <div class="relative">
+        <button id="presetBtn" class="flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-200 transition-all">
+          <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span class="hidden sm:inline">Presets</span>
+          <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <!-- Preset Dropdown Menu -->
+        <div id="presetMenu" class="hidden absolute right-0 mt-1 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 z-50 text-xs">
+          <div class="px-2 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">United States (USD • mi)</div>
+          <button class="preset-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex flex-col" data-region="US" data-stops='[{"name":"3320 Solana Circle, Denton, Texas","lat":33.2256,"lng":-97.1643},{"name":"University of North Texas, Denton, TX","lat":33.2075,"lng":-97.1526},{"name":"Denton Historic Square, Denton, TX","lat":33.2148,"lng":-97.1331}]'>
+            <span class="font-medium text-slate-800">Denton, TX: 3320 Solana ➔ UNT ➔ Square</span>
+            <span class="text-[11px] text-slate-500">6.2 mi • 3 Stops • ~16 mins</span>
+          </button>
+          <button class="preset-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex flex-col" data-region="US" data-stops='[{"name":"JFK Airport Terminal 4, NY","lat":40.6437,"lng":-73.7788},{"name":"Flatiron Building, 175 5th Ave, NY","lat":40.7411,"lng":-73.9897},{"name":"Times Square, Manhattan, NY","lat":40.7580,"lng":-73.9855}]'>
+            <span class="font-medium text-slate-800">NYC 3-Stop: JFK ➔ Flatiron ➔ Times Sq</span>
+            <span class="text-[11px] text-slate-500">19.2 mi • 3 Stops • ~45 mins</span>
+          </button>
+          <button class="preset-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex flex-col" data-region="US" data-stops='[{"name":"SFO Airport, San Francisco, CA","lat":37.6213,"lng":-122.3790},{"name":"Mission District, SF, CA","lat":37.7599,"lng":-122.4148},{"name":"Union Square, San Francisco, CA","lat":37.7879,"lng":-122.4074}]'>
+            <span class="font-medium text-slate-800">SF 3-Stop: SFO ➔ Mission ➔ Union Sq</span>
+            <span class="text-[11px] text-slate-500">15.4 mi • 3 Stops • ~28 mins</span>
+          </button>
+          <div class="my-1 border-t border-slate-100"></div>
+          <div class="px-2 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">India (INR • km)</div>
+          <button class="preset-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex flex-col" data-region="IN" data-stops='[{"name":"Kempegowda Int&apos;l Airport (BLR), Bengaluru","lat":13.1986,"lng":77.7066},{"name":"Manyata Tech Park, Hebbal, Bengaluru","lat":13.0483,"lng":77.6209},{"name":"Koramangala 5th Block, Bengaluru","lat":12.9352,"lng":77.6245}]'>
+            <span class="font-medium text-slate-800">BLR 3-Stop: Airport ➔ Manyata ➔ Koramangala</span>
+            <span class="text-[11px] text-slate-500">44.8 km • 3 Stops • ~75 mins</span>
+          </button>
+          <button class="preset-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex flex-col" data-region="IN" data-stops='[{"name":"Connaught Place, New Delhi","lat":28.6304,"lng":77.2177},{"name":"Hauz Khas Village, New Delhi","lat":28.5535,"lng":77.1944},{"name":"Cyber City Phase 2, Gurugram","lat":28.4986,"lng":77.0878}]'>
+            <span class="font-medium text-slate-800">DEL/NCR 3-Stop: CP ➔ Hauz Khas ➔ Cyber City</span>
+            <span class="text-[11px] text-slate-500">31.2 km • 3 Stops • ~52 mins</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Surge Multiplier Simulator Dropdown -->
+      <div class="relative">
+        <button id="surgeBtn" class="flex items-center gap-1 text-xs font-semibold px-2 sm:px-2.5 py-1.5 rounded-lg border transition-all bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+          <span id="surgeIndicator" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span id="surgeLabel" class="text-xs">1.0x Surge</span>
+          <svg class="w-3 h-3 ml-0.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <!-- Surge Menu -->
+        <div id="surgeMenu" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 p-1 z-50 text-xs">
+          <button class="surge-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex items-center justify-between font-medium text-slate-700" data-surge="1.0">
+            <span>Standard (1.0x)</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </button>
+          <button class="surge-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex items-center justify-between font-medium text-slate-700" data-surge="1.25">
+            <span>Peak Demand (1.25x)</span>
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          </button>
+          <button class="surge-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex items-center justify-between font-medium text-slate-700" data-surge="1.5">
+            <span>High Surge (1.5x)</span>
+            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+          </button>
+          <button class="surge-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex items-center justify-between font-medium text-slate-700" data-surge="2.0">
+            <span>Major Surge (2.0x)</span>
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          </button>
+          <button class="surge-option w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-50 flex items-center justify-between font-medium text-slate-700" data-surge="3.0">
+            <span>Severe Surge (3.0x)</span>
+            <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Region Switcher Pill (US vs India) -->
+      <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200" role="group" aria-label="Region and currency selector">
+        <button id="regionUsBtn" class="region-pill active px-2 sm:px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all" data-region="US" title="United States (Miles • USD $)">
+          <span>🇺🇸</span>
+          <span class="hidden sm:inline">US ($)</span>
+        </button>
+        <button id="regionInBtn" class="region-pill px-2 sm:px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition-all" data-region="IN" title="India (Kilometers • INR ₹)">
+          <span>🇮🇳</span>
+          <span class="hidden sm:inline">IN (₹)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Fullscreen Map Background -->
+  <main id="map" class="fixed inset-0 top-14 w-full h-[calc(100vh-3.5rem)] z-0 outline-none" aria-label="Interactive Rideshare Route Map"></main>
+
+  <!-- Easy Nav: Floating Collapsible Sidebar (Desktop) / Smooth Bottom Sheet (Mobile) -->
+  <aside id="navPanel" class="nav-panel fixed z-[1000] flex flex-col bg-white/95 backdrop-blur-md shadow-float border border-slate-200/80 transition-all duration-300 overflow-hidden" aria-label="Rideshare Route and Fare Panel">
+    
+    <!-- Mobile Drag Handle -->
+    <div id="dragHandle" class="md:hidden flex items-center justify-center py-2 cursor-grab active:cursor-grabbing border-b border-slate-100 touch-none">
+      <div class="w-12 h-1.5 bg-slate-300 rounded-full"></div>
+    </div>
+
+    <!-- Panel Header: Title and Collapse Chevron -->
+    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+        <h1 class="text-sm font-bold tracking-tight text-slate-900">Fare Matrix & Trip Setup</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="activeRegionBadge" class="text-[11px] font-semibold px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/60 rounded-full">
+          US • Miles • USD
+        </span>
+        <button id="panelCollapseIconBtn" class="hidden md:flex p-1 text-slate-400 hover:text-slate-700 rounded transition-colors" title="Collapse Panel">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Panel Body -->
+    <div id="panelBody" class="flex-1 overflow-y-auto px-4 py-3 space-y-3.5 custom-scrollbar">
+
+      <!-- Multi-Stop Trip Setup Panel -->
+      <div class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/80 space-y-2.5 relative">
+        <div class="flex items-center justify-between pb-1 border-b border-slate-200/60 text-xs">
+          <div class="flex items-center gap-1.5 font-semibold text-slate-700 text-[11px] uppercase tracking-wider">
+            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span>Itinerary Waypoints</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="addStopBtn" type="button" class="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md border border-blue-200 transition-colors" title="Add intermediate stop">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Add Stop</span>
+            </button>
+            <button id="swapBtn" type="button" class="p-1 text-slate-500 hover:text-blue-600 rounded transition-colors" title="Swap Pickup and Dropoff">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Waypoints Container -->
+        <div id="stopsContainer" class="space-y-2 relative">
+          <!-- Dynamically populated by renderStopsList() -->
+        </div>
+
+        <!-- Hidden inputs for backward-compatible element handles -->
+        <input type="hidden" id="pickupInput" />
+        <input type="hidden" id="dropoffInput" />
+        <button id="clearPickupBtn" class="hidden"></button>
+        <button id="clearDropoffBtn" class="hidden"></button>
+        <button id="locatePickupBtn" class="hidden"></button>
+        <button id="pickDropoffBtn" class="hidden"></button>
+        <ul id="pickupAutocomplete" class="hidden"></ul>
+        <ul id="dropoffAutocomplete" class="hidden"></ul>
+
+        <!-- Map Click Precision Guidance Note -->
+        <div class="pt-1 flex items-center justify-between text-[11px] text-slate-500">
+          <span class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span>Click map to add or refine pinpoints</span>
+          </span>
+          <span id="waypointCountBadge" class="font-semibold text-slate-700 bg-slate-200/80 px-1.5 py-0.5 rounded text-[10px]">2 Stops</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons Row -->
+      <div class="flex items-center gap-2">
+        <button id="compareBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+          <span id="compareSpinner" class="hidden w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+          <span id="compareBtnText">Compare All Providers</span>
+          <svg id="compareBtnIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+        <button id="clearAllBtn" class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium transition-colors" title="Clear all stops">
+          Clear
+        </button>
+      </div>
+
+      <!-- Live Route Stats Banner (Distance, Duration, ETA) -->
+      <div id="routeStatsBar" class="hidden bg-slate-900 text-white p-3 rounded-xl shadow-md flex items-center justify-between">
+        <div>
+          <div class="text-[11px] text-slate-400 uppercase font-semibold tracking-wider">Fastest Driving Path</div>
+          <div class="flex items-baseline gap-2 mt-0.5">
+            <span id="routeDistanceText" class="text-sm font-bold text-white tracking-tight">14.2 mi</span>
+            <span class="text-slate-500">•</span>
+            <span id="routeDurationText" class="text-sm font-bold text-sky-400 tracking-tight">28 mins</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] text-slate-400 uppercase font-medium">Estimated Arrival</div>
+          <div id="routeArrivalTime" class="text-xs font-semibold text-slate-200">1:45 PM</div>
+        </div>
+      </div>
+
+      <!-- Filter & Sort Strip -->
+      <div id="filterSortBar" class="hidden space-y-2 pt-1 border-t border-slate-100">
+        <!-- Sort Control -->
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-semibold text-slate-600 text-[11px] uppercase tracking-wider">Sort by:</span>
+          <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+            <button class="sort-chip active px-2 py-0.5 rounded text-[11px] font-semibold text-slate-800" data-sort="cheapest">Cheapest</button>
+            <button class="sort-chip px-2 py-0.5 rounded text-[11px] font-medium text-slate-600 hover:text-slate-900" data-sort="fastest">Fastest ETA</button>
+            <button class="sort-chip px-2 py-0.5 rounded text-[11px] font-medium text-slate-600 hover:text-slate-900" data-sort="value">Best Value</button>
+            <button class="sort-chip px-2 py-0.5 rounded text-[11px] font-medium text-slate-600 hover:text-slate-900" data-sort="tiers">Ride Tiers</button>
+          </div>
+        </div>
+
+        <!-- Vehicle Category Filters -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+          <button class="filter-chip active flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-900 text-white shadow-sm" data-filter="all">All Rides</button>
+          <button class="filter-chip flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" data-filter="economy">Economy</button>
+          <button class="filter-chip flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" data-filter="comfort">Comfort</button>
+          <button class="filter-chip flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" data-filter="xl">XL / 6-Seat</button>
+          <button class="filter-chip flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" data-filter="green">🌱 Green/EV</button>
+          <button class="filter-chip flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200" data-filter="auto_bike">🛺 Auto/Bike</button>
+        </div>
+      </div>
+
+      <!-- Skeleton Loaders for Fare Matrix (Shown during calculation) -->
+      <div id="skeletonContainer" class="hidden space-y-2.5 py-1">
+        <div class="skeleton-card p-3 rounded-xl bg-slate-50 border border-slate-200/60 animate-pulse space-y-2">
+          <div class="flex justify-between items-center">
+            <div class="h-4 w-28 bg-slate-200 rounded"></div>
+            <div class="h-5 w-16 bg-slate-200 rounded"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="h-3 w-40 bg-slate-200 rounded"></div>
+            <div class="h-3 w-12 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+        <div class="skeleton-card p-3 rounded-xl bg-slate-50 border border-slate-200/60 animate-pulse space-y-2">
+          <div class="flex justify-between items-center">
+            <div class="h-4 w-32 bg-slate-200 rounded"></div>
+            <div class="h-5 w-20 bg-slate-200 rounded"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="h-3 w-36 bg-slate-200 rounded"></div>
+            <div class="h-3 w-14 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+        <div class="skeleton-card p-3 rounded-xl bg-slate-50 border border-slate-200/60 animate-pulse space-y-2">
+          <div class="flex justify-between items-center">
+            <div class="h-4 w-24 bg-slate-200 rounded"></div>
+            <div class="h-5 w-14 bg-slate-200 rounded"></div>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="h-3 w-44 bg-slate-200 rounded"></div>
+            <div class="h-3 w-16 bg-slate-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fare Matrix Results List -->
+      <div id="fareList" class="space-y-2.5">
+        <!-- Initial Blank Slate / Welcome Guide -->
+        <div id="initialPrompt" class="py-8 px-4 text-center space-y-2">
+          <div class="w-12 h-12 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          </div>
+          <h2 class="text-sm font-semibold text-slate-800">Compare Rideshare in Seconds</h2>
+          <p class="text-xs text-slate-500 max-w-xs mx-auto">Enter your pickup and destination or pick a Preset route above to view instant price comparisons across all top providers.</p>
+        </div>
+      </div>
+
+      <!-- No Results / Filter Empty State -->
+      <div id="filterEmptyState" class="hidden py-6 text-center text-slate-500 text-xs">
+        No rides match the selected vehicle filter. Try selecting "All Rides".
+      </div>
+
+    </div>
+
+    <!-- Panel Footer / Status Bar -->
+    <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+      <div class="flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+        <span id="providerCountLabel">Ready to route</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-slate-400">Powered by OSRM & Photon</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Detailed Fare Breakdown & Booking Modal -->
+  <div id="fareModal" class="hidden fixed inset-0 z-[2000] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-3">
+          <div id="modalProviderIcon" class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-800 text-sm border border-slate-200">
+            UB
+          </div>
+          <div>
+            <h2 id="modalProviderTitle" class="text-base font-bold text-slate-900">UberX</h2>
+            <div id="modalProviderTier" class="text-xs text-slate-500 font-medium">Economy • 4 seats</div>
+          </div>
+        </div>
+        <button id="closeModalBtn" class="text-slate-400 hover:text-slate-600 text-lg leading-none p-1">&times;</button>
+      </div>
+
+      <!-- Total Price Highlight -->
+      <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 flex items-baseline justify-between">
+        <span class="text-xs font-semibold text-slate-600">Estimated Total Fare</span>
+        <span id="modalTotalFare" class="text-2xl font-black text-slate-900 tracking-tight">$24.85</span>
+      </div>
+
+      <!-- Line Item Calculation Breakdown -->
+      <div class="space-y-2 text-xs divide-y divide-slate-100 text-slate-600">
+        <div class="flex justify-between pt-1">
+          <span>Base Fare</span>
+          <span id="modalBaseFare" class="font-medium text-slate-800">$2.55</span>
+        </div>
+        <div class="flex justify-between pt-1">
+          <span id="modalDistanceRateLabel">Distance Charge (14.2 mi @ $1.60/mi)</span>
+          <span id="modalDistanceFee" class="font-medium text-slate-800">$22.72</span>
+        </div>
+        <div class="flex justify-between pt-1">
+          <span id="modalTimeRateLabel">Time Charge (28 min @ $0.35/min)</span>
+          <span id="modalTimeFee" class="font-medium text-slate-800">$9.80</span>
+        </div>
+        <div class="flex justify-between pt-1">
+          <span>Platform & Booking Fee</span>
+          <span id="modalPlatformFee" class="font-medium text-slate-800">$3.25</span>
+        </div>
+        <div id="modalSurgeRow" class="flex justify-between pt-1 text-amber-600 font-medium">
+          <span>Surge Multiplier (Peak)</span>
+          <span id="modalSurgeFee">1.25x</span>
+        </div>
+        <!-- Itinerary Legs Breakdown -->
+        <div id="modalLegsSection" class="pt-2 text-[11px] text-slate-500 space-y-1">
+          <div class="font-semibold text-slate-700 uppercase tracking-wider text-[10px] flex items-center justify-between">
+            <span>Multi-Stop Leg Details</span>
+            <span id="modalLegsCountBadge" class="text-[10px] text-blue-600 font-bold">2 Legs</span>
+          </div>
+          <div id="modalLegsList" class="space-y-1 bg-slate-50 p-2 rounded-lg border border-slate-100 max-h-28 overflow-y-auto custom-scrollbar">
+            <!-- Dynamic leg items -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy Guarantees & Vehicle Details -->
+      <div class="bg-blue-50/60 p-3 rounded-lg border border-blue-100 text-[11px] text-blue-900 space-y-1">
+        <div class="font-semibold flex items-center gap-1">
+          <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Driver ETA & Cancellation Guarantee
+        </div>
+        <p id="modalPolicyText" class="text-slate-600 leading-relaxed">Typical driver pickup in 3-5 mins. Free cancellation within 2 minutes of booking.</p>
+      </div>
+
+      <!-- Action Button: Deep Link / Booking Simulator -->
+      <button id="bookRideBtn" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors flex items-center justify-center gap-2">
+        <span>Proceed to Book on <span id="modalBookProviderName">Uber</span></span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-[3000] flex flex-col gap-2 pointer-events-none" aria-live="polite"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
